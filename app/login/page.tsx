@@ -1,11 +1,19 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import '@/styles/auth.css';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="auth-loading">Loading login...</div>}>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const { user, loading, signInWithPassword, signUpWithPassword, signOut } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
