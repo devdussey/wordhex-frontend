@@ -1,0 +1,12 @@
+
+.score-pop{
+  position:absolute;
+  color:#ffd16b;
+  font-size:20px;
+  animation:scorePop .6s forwards;
+  text-shadow:0 0 6px #ffdd99;
+}
+@keyframes scorePop{
+  0%{transform:translateY(0);opacity:1;}
+  100%{transform:translateY(-25px);opacity:0;}
+}

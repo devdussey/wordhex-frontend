@@ -1,0 +1,11 @@
+
+.word-blast{
+  position:absolute;inset:0;
+  background:radial-gradient(circle,#c09cff55 0%,transparent 70%);
+  animation:blast .5s forwards;
+  pointer-events:none;
+}
+@keyframes blast{
+  from{opacity:1;}
+  to{opacity:0;}
+}

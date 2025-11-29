@@ -1,0 +1,4 @@
+
+.neon-tracer{position:absolute;inset:0;pointer-events:none;}
+.neon-line{stroke:#a175ff;stroke-width:4;filter:drop-shadow(0 0 8px #c7a3ff);animation:neonFade .7s forwards;}
+@keyframes neonFade{from{opacity:1;}to{opacity:0;}}
