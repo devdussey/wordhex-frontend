@@ -95,28 +95,28 @@ alter table realtime.messages enable row level security;
 -- Policies for lobbies
 do $$
 begin
-  if not exists (select 1 from pg_policies where polname = 'lobbies_select_member') then
+  if not exists (select 1 from pg_policies where policyname = 'lobbies_select_member') then
     create policy lobbies_select_member
       on public.lobbies
       for select
       using (public.is_lobby_member(id) or public.is_lobby_host(id));
   end if;
 
-  if not exists (select 1 from pg_policies where polname = 'lobbies_insert_host_only') then
+  if not exists (select 1 from pg_policies where policyname = 'lobbies_insert_host_only') then
     create policy lobbies_insert_host_only
       on public.lobbies
       for insert
       with check (auth.uid() = host_user_id);
   end if;
 
-  if not exists (select 1 from pg_policies where polname = 'lobbies_update_host_only') then
+  if not exists (select 1 from pg_policies where policyname = 'lobbies_update_host_only') then
     create policy lobbies_update_host_only
       on public.lobbies
       for update
       using (public.is_lobby_host(id));
   end if;
 
-  if not exists (select 1 from pg_policies where polname = 'lobbies_delete_host_only') then
+  if not exists (select 1 from pg_policies where policyname = 'lobbies_delete_host_only') then
     create policy lobbies_delete_host_only
       on public.lobbies
       for delete
@@ -127,14 +127,14 @@ end $$;
 -- Policies for lobby_members
 do $$
 begin
-  if not exists (select 1 from pg_policies where polname = 'lobby_members_select_member') then
+  if not exists (select 1 from pg_policies where policyname = 'lobby_members_select_member') then
     create policy lobby_members_select_member
       on public.lobby_members
       for select
       using (public.is_lobby_member(lobby_id) or public.is_lobby_host(lobby_id));
   end if;
 
-  if not exists (select 1 from pg_policies where polname = 'lobby_members_insert_self') then
+  if not exists (select 1 from pg_policies where policyname = 'lobby_members_insert_self') then
     create policy lobby_members_insert_self
       on public.lobby_members
       for insert
@@ -144,7 +144,7 @@ begin
       );
   end if;
 
-  if not exists (select 1 from pg_policies where polname = 'lobby_members_update_self_or_host') then
+  if not exists (select 1 from pg_policies where policyname = 'lobby_members_update_self_or_host') then
     create policy lobby_members_update_self_or_host
       on public.lobby_members
       for update
@@ -152,7 +152,7 @@ begin
       with check (auth.uid() = user_id or public.is_lobby_host(lobby_id));
   end if;
 
-  if not exists (select 1 from pg_policies where polname = 'lobby_members_delete_self_or_host') then
+  if not exists (select 1 from pg_policies where policyname = 'lobby_members_delete_self_or_host') then
     create policy lobby_members_delete_self_or_host
       on public.lobby_members
       for delete
@@ -163,7 +163,7 @@ end $$;
 -- RLS for realtime.messages to enforce private channels per lobby
 do $$
 begin
-  if not exists (select 1 from pg_policies where polname = 'realtime_messages_lobby_select') then
+  if not exists (select 1 from pg_policies where policyname = 'realtime_messages_lobby_select') then
     create policy realtime_messages_lobby_select
       on realtime.messages
       for select
@@ -173,7 +173,7 @@ begin
       );
   end if;
 
-  if not exists (select 1 from pg_policies where polname = 'realtime_messages_lobby_insert') then
+  if not exists (select 1 from pg_policies where policyname = 'realtime_messages_lobby_insert') then
     create policy realtime_messages_lobby_insert
       on realtime.messages
       for insert
