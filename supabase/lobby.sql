@@ -2,8 +2,8 @@
 -- Run this in the Supabase SQL editor or via `supabase db execute`.
 -- Assumes the `realtime` extension and `auth.users` are present (default Supabase project).
 
--- Safety: avoid surprises if run multiple times
 create extension if not exists "pgcrypto";
+set check_function_bodies = off;
 
 -- Generate a short, unique, uppercase lobby code
 create or replace function public.generate_lobby_code()
@@ -25,11 +25,12 @@ $$;
 -- Tables
 create table if not exists public.lobbies (
   id uuid primary key default gen_random_uuid(),
-  code text not null unique default public.generate_lobby_code(),
-  host_user_id uuid not null references auth.users (id) on delete cascade,
+  code text not null default public.generate_lobby_code(),
+  host_user_id uuid not null references auth.users(id) on delete cascade,
   is_open boolean not null default true,
   started_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (code)
 );
 
 create table if not exists public.lobby_members (
