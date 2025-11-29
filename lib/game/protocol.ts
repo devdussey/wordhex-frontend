@@ -1,0 +1,17 @@
+
+export const Protocol = {
+  WELCOME: "WELCOME",
+  PLAYERJOIN: "PLAYERJOIN",
+  BOARD: "BOARD",
+  TURN: "TURN",
+  OPPPATH: "OPPPATH",
+  OPPSUBMIT: "OPPSUBMIT",
+  ROUND: "ROUND",
+  MATCHEND: "MATCHEND",
+  ERROR: "ERROR",
+  // outgoing
+  JOIN: "JOIN",
+  PATH: "PATH",
+  SUBMIT: "SUBMIT",
+  ENDTURN: "ENDTURN",
+};

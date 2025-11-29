@@ -1,0 +1,1 @@
+<svg className='neon-placeholder'></svg>

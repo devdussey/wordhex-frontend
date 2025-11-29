@@ -1,0 +1,46 @@
+
+.lobby-box{
+  border:1px solid #6547ff;
+  padding:10px;
+  border-radius:6px;
+  background:#0f0f1a;
+  margin-bottom:20px;
+}
+.lobby-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:6px 0;
+  border-bottom:1px solid #1f1f2a;
+}
+.lobby-slot{
+  color:#8f4dff;
+  width:30px;
+}
+.lobby-name{
+  flex:1;
+}
+.lobby-host{
+  color:#ffd16b;
+  font-size:0.9rem;
+}
+.lobby-empty{
+  color:#665a88;
+  font-style:italic;
+  flex:1;
+}
+.ready{
+  padding:4px 10px;
+  border-radius:4px;
+  font-size:0.9rem;
+}
+.ready.on{
+  background:#4cff8a22;
+  border:1px solid #4cff8a;
+  color:#4cff8a;
+}
+.ready.off{
+  background:#ff4b6822;
+  border:1px solid #ff4b68;
+  color:#ff4b68;
+}

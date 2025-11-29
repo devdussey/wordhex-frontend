@@ -1,0 +1,29 @@
+
+.wp-valid{
+  color:#7d5bff;
+  font-size:1.6rem;
+  margin-top:12px;
+  text-shadow:0 0 8px #7d5bff;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:center;
+}
+.wp-invalid{
+  color:#ff4b68;
+  font-size:1.6rem;
+  margin-top:12px;
+  display:flex;
+  justify-content:center;
+  animation:invalidShake 0.2s;
+}
+.wp-score{
+  font-size:1.4rem;
+}
+@keyframes invalidShake {
+  0%{transform:translateX(0);}
+  25%{transform:translateX(-4px);}
+  50%{transform:translateX(4px);}
+  75%{transform:translateX(-4px);}
+  100%{transform:translateX(0);}
+}

@@ -1,0 +1,36 @@
+
+.board-grid{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  max-width:720px;
+  margin:0 auto;
+}
+.board-row{
+  display:flex;
+  gap:6px;
+}
+.tile-base{
+  width:calc((720px - 6*4)/5);
+  height:calc((720px - 6*4)/5);
+  background:#0f0f1a;
+  border:2px solid #3a45ff;
+  box-shadow:0 0 8px #3a45ff66;
+  border-radius:4px;
+  position:relative;
+  transition:0.1s;
+}
+.tile-base:active{
+  transform:scale(0.95);
+}
+.tile-selected{
+  border-color:#9d4bff;
+  box-shadow:0 0 12px #9d4bffaa;
+}
+.tile-index{
+  position:absolute;
+  bottom:4px;
+  right:6px;
+  font-size:0.75rem;
+  color:#9d4bff;
+}
