@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import PlayerRow from "@/components/lobby/PlayerRow";
 import { LobbySocket } from "@/lib/game/lobbySocket";
 import "@/styles/lobby.css";
@@ -19,12 +19,43 @@ export default function LobbyPage() {
   const [lobbyCode, setLobbyCode] = useState("");
   const [msg, setMsg] = useState("Waiting to create or join a lobby.");
 
-  function markReady(i: number, val: boolean) {
-    setReady((r) => {
-      const next = [...r];
-      next[i] = val;
+  const playersRef = useRef(players);
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+
+  function setReadyForPlayer(id: string, val: boolean, name?: string) {
+    let idx = playersRef.current.findIndex((p) => p?.id === id);
+
+    if (idx === -1) {
+      const nextPlayers = [...playersRef.current];
+      const slot = nextPlayers.findIndex((p) => p === null);
+      if (slot !== -1) {
+        nextPlayers[slot] = { id, name: name ?? "Player" };
+        playersRef.current = nextPlayers;
+        setPlayers(nextPlayers);
+        idx = slot;
+      }
+    }
+
+    if (idx !== -1) {
+      setReady((prev) => {
+        const next = [...prev];
+        next[idx] = val;
+        return next;
+      });
+    }
+  }
+
+  function toggleSelfReady(nextVal: boolean) {
+    const selfIdx = playersRef.current.findIndex((p) => p?.id === playerId);
+    setReady((prev) => {
+      const next = [...prev];
+      if (selfIdx !== -1) next[selfIdx] = nextVal;
+      else next[0] = nextVal;
       return next;
     });
+    LobbySocket.send({ type: "READY", playerId, ready: nextVal, code: lobbyCode });
   }
 
   useEffect(() => {
@@ -34,6 +65,10 @@ export default function LobbyPage() {
         setLobbyCode(ev.code ?? "");
         setMsg("Lobby created. Share the code to invite.");
         setIsHost(true);
+        const initialReady = Array.isArray(ev.ready)
+          ? ev.ready.slice(0, 4).map(Boolean)
+          : [false, false, false, false];
+        setReady(initialReady);
         setPlayers(() => [
           { id: playerId, name: "You" },
           null,
@@ -45,13 +80,50 @@ export default function LobbyPage() {
         setLobbyCode(ev.code ?? "");
         setMsg("Joined lobby " + (ev.code ?? ""));
         setIsHost(false);
+        if (Array.isArray(ev.players)) {
+          setPlayers(
+            ev.players.slice(0, 4).map((p: any) =>
+              p ? { id: p.id, name: p.name ?? "Player" } : null
+            )
+          );
+          const readyFromPlayers = ev.players
+            .slice(0, 4)
+            .map((p: any) => !!p?.ready);
+          setReady(readyFromPlayers);
+          return;
+        }
+        const joinReady = Array.isArray(ev.ready)
+          ? ev.ready.slice(0, 4).map(Boolean)
+          : [false, false, false, false];
+        setReady(joinReady);
+        const joiningPlayerId = ev.playerId ?? ev.id ?? null;
+        const joiningPlayerName = ev.playerName ?? ev.name ?? "Player";
         setPlayers((p) => {
           const next = [...p];
           if (!next[0]) next[0] = { id: playerId, name: "You" };
+          // Avoid duplicating yourself if backend echoes your own JOINED
+          if (joiningPlayerId && joiningPlayerId === playerId) return next;
           const slot = next.findIndex((x) => x === null);
-          if (slot !== -1) next[slot] = { id: "pX", name: "Player" };
+          if (slot !== -1 && joiningPlayerId) {
+            next[slot] = { id: joiningPlayerId, name: joiningPlayerName };
+          }
           return next;
         });
+      }
+      if (ev.type === "READY" || ev.type === "PLAYER_READY") {
+        const id = ev.playerId ?? ev.id;
+        if (!id) return;
+        setReadyForPlayer(id, !!ev.ready, ev.name);
+      }
+      if (ev.type === "LOBBY_STATE" && Array.isArray(ev.players)) {
+        setPlayers(
+          ev.players.slice(0, 4).map((p: any) =>
+            p ? { id: p.id, name: p.name ?? "Player" } : null
+          )
+        );
+        if (Array.isArray(ev.ready)) {
+          setReady(ev.ready.slice(0, 4).map(Boolean));
+        }
       }
       if (ev.type === "START") {
         window.location.href = "/game";
@@ -70,7 +142,9 @@ export default function LobbyPage() {
   ));
 
   const playerCount = players.filter(Boolean).length;
-  const canStart = isHost && ready[0] && playerCount > 1;
+  const selfIndex = players.findIndex((p) => p?.id === playerId);
+  const selfReady = selfIndex >= 0 ? ready[selfIndex] : ready[0];
+  const canStart = isHost && selfReady && playerCount > 1;
 
   return (
     <div className="lobby-page">
@@ -114,10 +188,10 @@ export default function LobbyPage() {
             <div className="lobby-box">{slotElems}</div>
             <div className="panel-actions">
               <button
-                className={`btn ${ready[0] ? "secondary" : "primary"}`}
-                onClick={() => markReady(0, !ready[0])}
+                className={`btn ${selfReady ? "secondary" : "primary"}`}
+                onClick={() => toggleSelfReady(!selfReady)}
               >
-                {ready[0] ? "Unready" : "I'm Ready"}
+                {selfReady ? "Unready" : "I'm Ready"}
               </button>
               <div className="hint">
                 Mark yourself ready; host can start when at least two players are in.
