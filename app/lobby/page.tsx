@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import PlayerRow from "@/components/lobby/PlayerRow";
 import { LobbySocket } from "@/lib/game/lobbySocket";
 import "@/styles/lobby.css";
+import RequireAuth from "@/components/auth/RequireAuth";
 
 export default function LobbyPage() {
   const [playerId] = useState(() => "p" + Math.random().toString(36).slice(2));
@@ -147,107 +148,109 @@ export default function LobbyPage() {
   const canStart = isHost && selfReady && playerCount > 1;
 
   return (
-    <div className="lobby-page">
-      <div className="lobby-shell">
-        <header className="lobby-header">
-          <div className="eyebrow">WordHex</div>
-          <h1>Game Lobby</h1>
-          <p>Line up to 4 players, toggle ready, and launch the match.</p>
-          <div className="lobby-code-pill">
-            <div>
-              <div className="label">Lobby code</div>
-              <div className="code-value">
-                {lobbyCode ? lobbyCode : "Create or join to get a code"}
-              </div>
-            </div>
-            <button
-              className="btn ghost"
-              onClick={() => {
-                if (!lobbyCode || !navigator?.clipboard) return;
-                navigator.clipboard.writeText(lobbyCode);
-                setMsg("Lobby code copied.");
-              }}
-              disabled={!lobbyCode}
-            >
-              Copy
-            </button>
-          </div>
-        </header>
-
-        <div className="lobby-grid">
-          <section className="panel players">
-            <div className="panel-head">
+    <RequireAuth redirectTo="/login">
+      <div className="lobby-page">
+        <div className="lobby-shell">
+          <header className="lobby-header">
+            <div className="eyebrow">WordHex</div>
+            <h1>Game Lobby</h1>
+            <p>Line up to 4 players, toggle ready, and launch the match.</p>
+            <div className="lobby-code-pill">
               <div>
-                <div className="label">Players</div>
-                <h3>{playerCount} / 4 ready to roll</h3>
+                <div className="label">Lobby code</div>
+                <div className="code-value">
+                  {lobbyCode ? lobbyCode : "Create or join to get a code"}
+                </div>
               </div>
-              <div className={`badge ${isHost ? "badge-host" : "badge-guest"}`}>
-                {isHost ? "Host" : "Guest"}
-              </div>
-            </div>
-            <div className="lobby-box">{slotElems}</div>
-            <div className="panel-actions">
               <button
-                className={`btn ${selfReady ? "secondary" : "primary"}`}
-                onClick={() => toggleSelfReady(!selfReady)}
+                className="btn ghost"
+                onClick={() => {
+                  if (!lobbyCode || !navigator?.clipboard) return;
+                  navigator.clipboard.writeText(lobbyCode);
+                  setMsg("Lobby code copied.");
+                }}
+                disabled={!lobbyCode}
               >
-                {selfReady ? "Unready" : "I'm Ready"}
+                Copy
               </button>
-              <div className="hint">
-                Mark yourself ready; host can start when at least two players are in.
+            </div>
+          </header>
+
+          <div className="lobby-grid">
+            <section className="panel players">
+              <div className="panel-head">
+                <div>
+                  <div className="label">Players</div>
+                  <h3>{playerCount} / 4 ready to roll</h3>
+                </div>
+                <div className={`badge ${isHost ? "badge-host" : "badge-guest"}`}>
+                  {isHost ? "Host" : "Guest"}
+                </div>
               </div>
-            </div>
-          </section>
-
-          <section className="panel controls">
-            <div className="panel-head">
-              <div className="label">Lobby controls</div>
-              <h3>Invite or jump into a room</h3>
-            </div>
-            <div className="stack">
-              <button
-                className="btn primary wide"
-                onClick={() => LobbySocket.send({ type: "CREATE", playerId })}
-              >
-                Create Lobby
-              </button>
-
-              <div className="input-row">
-                <input
-                  value={codeInput}
-                  onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                  placeholder="Enter lobby code"
-                />
+              <div className="lobby-box">{slotElems}</div>
+              <div className="panel-actions">
                 <button
-                  className="btn outline"
-                  onClick={() =>
-                    LobbySocket.send({
-                      type: "JOINLOBBY",
-                      code: codeInput.trim(),
-                      playerId,
-                    })
-                  }
-                  disabled={!codeInput.trim()}
+                  className={`btn ${selfReady ? "secondary" : "primary"}`}
+                  onClick={() => toggleSelfReady(!selfReady)}
                 >
-                  Join
+                  {selfReady ? "Unready" : "I'm Ready"}
                 </button>
+                <div className="hint">
+                  Mark yourself ready; host can start when at least two players are in.
+                </div>
               </div>
+            </section>
 
-              <button
-                className="btn accent wide"
-                onClick={() => LobbySocket.send({ type: "START" })}
-                disabled={!canStart}
-              >
-                Start Game
-              </button>
-              <div className="hint">
-                Host only. Requires you ready and at least one other player in the lobby.
+            <section className="panel controls">
+              <div className="panel-head">
+                <div className="label">Lobby controls</div>
+                <h3>Invite or jump into a room</h3>
               </div>
-            </div>
-            <div className="lobby-status">{msg}</div>
-          </section>
+              <div className="stack">
+                <button
+                  className="btn primary wide"
+                  onClick={() => LobbySocket.send({ type: "CREATE", playerId })}
+                >
+                  Create Lobby
+                </button>
+
+                <div className="input-row">
+                  <input
+                    value={codeInput}
+                    onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                    placeholder="Enter lobby code"
+                  />
+                  <button
+                    className="btn outline"
+                    onClick={() =>
+                      LobbySocket.send({
+                        type: "JOINLOBBY",
+                        code: codeInput.trim(),
+                        playerId,
+                      })
+                    }
+                    disabled={!codeInput.trim()}
+                  >
+                    Join
+                  </button>
+                </div>
+
+                <button
+                  className="btn accent wide"
+                  onClick={() => LobbySocket.send({ type: "START" })}
+                  disabled={!canStart}
+                >
+                  Start Game
+                </button>
+                <div className="hint">
+                  Host only. Requires you ready and at least one other player in the lobby.
+                </div>
+              </div>
+              <div className="lobby-status">{msg}</div>
+            </section>
+          </div>
         </div>
       </div>
-    </div>
+    </RequireAuth>
   );
 }

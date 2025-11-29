@@ -1,0 +1,118 @@
+.auth-page{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px 16px;
+  background:radial-gradient(circle at 20% 20%, #151526, #0a0a0f 60%);
+}
+.auth-card{
+  width:100%;
+  max-width:420px;
+  background:#0f1022;
+  border:1px solid #1f2032;
+  border-radius:16px;
+  padding:28px 26px;
+  box-shadow:0 20px 70px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.02);
+}
+.label{
+  color:#7f8aa8;
+  font-size:12px;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+}
+.auth-head h1{
+  margin:0 0 6px;
+  font-size:28px;
+}
+.auth-head p{
+  margin:0;
+  color:#98a0c6;
+}
+.auth-form{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  margin-top:18px;
+}
+.auth-form label{
+  font-size:13px;
+  color:#7f8aa8;
+  letter-spacing:0.02em;
+}
+.auth-form input{
+  width:100%;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #252741;
+  background:#0b0b12;
+  color:#e8ecff;
+}
+.auth-form input:focus{
+  outline:1px solid #6547ff;
+  box-shadow:0 0 0 2px rgba(101,71,255,0.25);
+}
+.auth-actions{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-top:8px;
+}
+.auth-subtext{
+  color:#7782a5;
+  font-size:13px;
+  margin-top:10px;
+}
+.auth-error{
+  margin-top:8px;
+  color:#ff8686;
+  background:rgba(255,134,134,0.08);
+  border:1px solid rgba(255,134,134,0.2);
+  border-radius:8px;
+  padding:8px 10px;
+}
+.auth-success{
+  margin-top:8px;
+  color:#8bf7c7;
+  background:rgba(139,247,199,0.08);
+  border:1px solid rgba(139,247,199,0.2);
+  border-radius:8px;
+  padding:8px 10px;
+}
+.auth-loading{
+  padding:20px;
+  text-align:center;
+  color:#98a0c6;
+}
+.btn{
+  border:none;
+  cursor:pointer;
+  border-radius:10px;
+  padding:10px 14px;
+  font-weight:600;
+  letter-spacing:0.02em;
+  transition:transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+  color:#0b0b12;
+}
+.btn:disabled{
+  opacity:0.55;
+  cursor:not-allowed;
+}
+.btn:active:not(:disabled){
+  transform:translateY(1px);
+}
+.btn.primary{
+  background:#6547ff;
+  box-shadow:0 10px 30px rgba(101,71,255,0.35);
+  color:white;
+}
+.btn.secondary{
+  background:#1d2438;
+  color:#e8ecff;
+  border:1px solid #2e3755;
+}
+.btn.outline{
+  background:transparent;
+  color:#e8ecff;
+  border:1px solid #2e3755;
+}
