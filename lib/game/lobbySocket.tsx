@@ -1,21 +1,30 @@
 
+import { buildAuthenticatedWsUrl } from '@/lib/game/wsAuth';
+
 class _LS {
   handlers: ((event: any) => void)[];
   ws: WebSocket | null;
-  url: string;
+  baseUrl: string;
   reconnectDelay: number;
 
   constructor(){
     this.handlers = [];
     this.ws = null;
-    this.url = process.env.NEXT_PUBLIC_WS_URL || 'wss://wordhex-backend.onrender.com';
+    this.baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://wordhex-backend.onrender.com';
     this.reconnectDelay = 2000;
     this.connect();
   }
 
-  connect() {
+  async connect() {
     try {
-      this.ws = new WebSocket(this.url);
+      const url = await buildAuthenticatedWsUrl(this.baseUrl);
+      if (!url) {
+        console.warn('LobbySocket waiting for Supabase session before connecting');
+        setTimeout(() => this.connect(), this.reconnectDelay);
+        return;
+      }
+
+      this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
         console.log('LobbySocket connected to backend');
@@ -36,10 +45,12 @@ class _LS {
 
       this.ws.onclose = () => {
         console.log('LobbySocket disconnected, reconnecting in', this.reconnectDelay, 'ms');
+        this.ws = null;
         setTimeout(() => this.connect(), this.reconnectDelay);
       };
     } catch (error) {
       console.error('Failed to create WebSocket:', error);
+      this.ws = null;
       setTimeout(() => this.connect(), this.reconnectDelay);
     }
   }

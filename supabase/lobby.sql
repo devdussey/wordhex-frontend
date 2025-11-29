@@ -3,34 +3,15 @@
 -- Assumes the `realtime` extension and `auth.users` are present (default Supabase project).
 
 create extension if not exists "pgcrypto";
-set check_function_bodies = off;
-
--- Generate a short, unique, uppercase lobby code
-create or replace function public.generate_lobby_code()
-returns text
-language plpgsql
-as $$
-declare
-  new_code text;
-begin
-  loop
-    -- 6 hex chars -> ~16M combinations; change length if you need more entropy
-    new_code := upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 6));
-    exit when not exists (select 1 from public.lobbies where code = new_code);
-  end loop;
-  return new_code;
-end;
-$$;
 
 -- Tables
 create table if not exists public.lobbies (
   id uuid primary key default gen_random_uuid(),
-  code text not null default public.generate_lobby_code(),
+  code text not null unique,
   host_user_id uuid not null references auth.users(id) on delete cascade,
   is_open boolean not null default true,
   started_at timestamptz,
-  created_at timestamptz not null default now(),
-  unique (code)
+  created_at timestamptz not null default now()
 );
 
 create table if not exists public.lobby_members (
@@ -47,6 +28,24 @@ create table if not exists public.lobby_members (
 create index if not exists idx_lobby_members_user on public.lobby_members(user_id);
 create index if not exists idx_lobby_members_lobby on public.lobby_members(lobby_id);
 create index if not exists idx_lobbies_code on public.lobbies(code);
+
+-- Generate a short, unique, uppercase lobby code (needs the table to exist first)
+create or replace function public.generate_lobby_code()
+returns text
+language plpgsql
+as $$
+declare
+  new_code text;
+begin
+  loop
+    new_code := upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 6));
+    exit when not exists (select 1 from public.lobbies where code = new_code);
+  end loop;
+  return new_code;
+end;
+$$;
+
+alter table public.lobbies alter column code set default public.generate_lobby_code();
 
 -- Helper functions for RLS
 create or replace function public.is_lobby_member(p_lobby_id uuid)
