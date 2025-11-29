@@ -2,14 +2,19 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@/lib/supabaseClient';
+import { useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
+
+type User = {
+  userId: Id<"users">;
+  email: string;
+};
 
 type AuthResult = { error?: Error } | undefined;
 
 type AuthContextValue = {
   user: User | null;
-  session: Session | null;
   loading: boolean;
   signInWithPassword: (email: string, password: string) => Promise<AuthResult>;
   signUpWithPassword: (email: string, password: string) => Promise<AuthResult>;
@@ -19,53 +24,62 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const supabase = getSupabaseClient();
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const signInMutation = useMutation(api.auth.signIn);
+  const signUpMutation = useMutation(api.auth.signUp);
+
   useEffect(() => {
-    let active = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session ?? null);
-      setLoading(false);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-    });
-
-    return () => {
-      active = false;
-      authListener?.subscription.unsubscribe();
-    };
-  }, [supabase]);
+    // Check if user is stored in localStorage
+    const storedUser = localStorage.getItem('convex_user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Failed to parse stored user:', error);
+        localStorage.removeItem('convex_user');
+      }
+    }
+    setLoading(false);
+  }, []);
 
   const signInWithPassword = async (email: string, password: string): Promise<AuthResult> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error };
+    try {
+      const result = await signInMutation({ email, password });
+      const user = { userId: result.userId, email: result.email };
+      setUser(user);
+      localStorage.setItem('convex_user', JSON.stringify(user));
+    } catch (error) {
+      return { error: error as Error };
+    }
   };
 
   const signUpWithPassword = async (email: string, password: string): Promise<AuthResult> => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error };
+    try {
+      const result = await signUpMutation({ email, password });
+      const user = { userId: result.userId, email: result.email };
+      setUser(user);
+      localStorage.setItem('convex_user', JSON.stringify(user));
+    } catch (error) {
+      return { error: error as Error };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    setUser(null);
+    localStorage.removeItem('convex_user');
   };
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      user: session?.user ?? null,
-      session,
+      user,
       loading,
       signInWithPassword,
       signUpWithPassword,
       signOut,
     }),
-    [session, loading]
+    [user, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

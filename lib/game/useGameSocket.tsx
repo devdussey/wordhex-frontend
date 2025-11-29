@@ -1,20 +1,10 @@
-
-import { buildAuthenticatedWsUrl } from '@/lib/game/wsAuth';
-
 export function useGameSocket(url: string, onMsg: (event: any) => void) {
   let ws: WebSocket | null = null;
   const reconnectDelay = 2000;
 
   async function connect() {
     try {
-      const target = await buildAuthenticatedWsUrl(url);
-      if (!target) {
-        console.warn('Game socket waiting for Supabase session before connecting');
-        setTimeout(connect, reconnectDelay);
-        return;
-      }
-
-      ws = new WebSocket(target);
+      ws = new WebSocket(url);
       ws.onmessage = (e) => {
         onMsg(JSON.parse(e.data));
       };
