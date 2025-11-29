@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Board from '@/components/game/Board';
 import NeonTracer from '@/components/game/NeonTracer';
 import WordPreview from '@/components/game/WordPreview';
-import { useDragPath } from '@/lib/game/useDragPath';
 import { scoreWord } from '@/lib/game/scoring';
 import { validate } from '@/lib/game/dictionary';
 import { useMultiplayerSocket } from '@/lib/game/useMultiplayerSocket';
@@ -115,7 +114,8 @@ export default function GameClient(){
     };
   }, []);
 
-  const boardSize = 720;
+  // Responsive board sizing
+  const boardSize = typeof window !== 'undefined' && window.innerWidth < 640 ? 320 : 720;
   const tileGap = 6;
   const gridSize = board[0]?.length ?? 5;
   const tileSize = (boardSize - tileGap * (gridSize - 1)) / gridSize;
@@ -124,7 +124,6 @@ export default function GameClient(){
     width:`${boardSize}px`,
     margin:'0 auto'
   };
-  const drag=useDragPath(setPath);
 
   const resetSelection = useCallback(() => {
     setPath([]);
@@ -175,8 +174,16 @@ export default function GameClient(){
 
   function onTilePress(x:number,y:number){
     if(turn!=="YOU" || isSubmitting) return;
-    if(path.length===0) drag.start({x,y});
-    else drag.move({x,y});
+
+    // Check if tile is already selected - if so, remove it
+    const existingIdx = path.findIndex(p => p.x === x && p.y === y);
+    if(existingIdx >= 0) {
+      // Remove this tile and all tiles after it
+      setPath(path.slice(0, existingIdx));
+    } else {
+      // Add new tile to path
+      setPath([...path, {x, y}]);
+    }
   }
 
   async function submitCurrentWord(source: 'auto' | 'button' = 'auto') {
@@ -234,10 +241,14 @@ export default function GameClient(){
     }
   }
 
-  function onEnd(){
-    drag.end();
-    if(path.length){
-      submitCurrentWord('auto');
+  // Auto-submit when word is complete and valid
+  async function onWordComplete() {
+    if(path.length && word.length >= 3) {
+      // Give user a moment to see their selection before submitting
+      const isValid = await validate(buildWordFromPath(path));
+      if (isValid) {
+        submitCurrentWord('auto');
+      }
     }
   }
 
@@ -247,11 +258,7 @@ export default function GameClient(){
   );
 
   return (
-    <div
-      style={containerStyle}
-      onMouseUp={onEnd}
-      onTouchEnd={onEnd}
-    >
+    <div style={containerStyle}>
       <div className="bg-anim" aria-hidden />
       <div style={{color:"#8f4dff",textAlign:"center",marginBottom:"10px"}}>
         Round {round} - Turn: {turn}
@@ -276,11 +283,17 @@ export default function GameClient(){
             >
               Submit word
             </button>
+            <button
+              className="clear-btn"
+              onClick={() => resetSelection()}
+            >
+              Clear
+            </button>
             <span className="submit-hint">
               {turn !== "YOU"
                 ? "Wait for your turn"
                 : valid
-                  ? "Release or tap submit to lock it in"
+                  ? "Tap submit to lock it in"
                   : "Needs 3+ letters in the dictionary"}
             </span>
           </div>

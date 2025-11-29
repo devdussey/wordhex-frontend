@@ -83,6 +83,26 @@
   cursor:not-allowed;
   box-shadow:none;
 }
+.clear-btn{
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px solid #ff5757;
+  background:radial-gradient(circle at 20% 20%, rgba(255, 87, 87, 0.3), rgba(120, 26, 26, 0.8));
+  color:#fff;
+  font-weight:700;
+  letter-spacing:0.4px;
+  cursor:pointer;
+  transition:transform 0.1s, box-shadow 0.2s;
+  box-shadow:0 0 12px rgba(255, 87, 87, 0.35);
+  font-size:0.9rem;
+}
+.clear-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 4px 14px rgba(255, 87, 87, 0.4);
+}
+.clear-btn:active{
+  transform:translateY(0);
+}
 .submit-hint{
   color:#d0d2ff;
   font-size:0.9rem;
