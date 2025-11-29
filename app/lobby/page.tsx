@@ -21,9 +21,76 @@ export default function LobbyPage() {
   const [msg, setMsg] = useState("Waiting to create or join a lobby.");
 
   const playersRef = useRef(players);
+  const readyRef = useRef(ready);
   useEffect(() => {
     playersRef.current = players;
   }, [players]);
+  useEffect(() => {
+    readyRef.current = ready;
+  }, [ready]);
+
+  function applyReadyArray(arr: any[]) {
+    const incoming = arr.slice(0, 4).map(Boolean);
+    setReady((prev) => {
+      const merged = [...prev];
+      for (let i = 0; i < 4; i++) {
+        if (typeof incoming[i] === "boolean") {
+          merged[i] = incoming[i];
+        } else if (typeof merged[i] !== "boolean") {
+          merged[i] = false;
+        }
+      }
+      return merged.slice(0, 4);
+    });
+  }
+
+  function applyPlayersSnapshot(rawPlayers: any[]) {
+    const byId = new Map(
+      playersRef.current.filter(Boolean).map((p) => [p!.id, p!])
+    );
+    const nextPlayers: (null | { id: string; name: string })[] = Array(4).fill(
+      null
+    );
+    const nextReady = [...readyRef.current, false, false, false, false].slice(
+      0,
+      4
+    );
+
+    rawPlayers.slice(0, 4).forEach((p, idx) => {
+      if (!p) {
+        nextPlayers[idx] = null;
+        nextReady[idx] = false;
+        return;
+      }
+
+      const id =
+        typeof p === "string"
+          ? p
+          : p.id ??
+            p.playerId ??
+            p.name ??
+            byId.get(p.id ?? p.playerId ?? "")?.id ??
+            `player-${idx + 1}`;
+      const existing = (id && byId.get(id)) || playersRef.current[idx] || null;
+      const name =
+        (typeof p === "object" && p.name) ||
+        existing?.name ||
+        `Player ${idx + 1}`;
+
+      nextPlayers[idx] = { id, name };
+
+      if (typeof p === "object" && "ready" in p) {
+        nextReady[idx] = !!(p as any).ready;
+      }
+    });
+
+    const namedPlayers = nextPlayers.map((p) =>
+      p && p.id === playerId ? { ...p, name: "You" } : p
+    );
+
+    setPlayers(namedPlayers);
+    setReady(nextReady);
+  }
 
   function setReadyForPlayer(id: string, val: boolean, name?: string) {
     let idx = playersRef.current.findIndex((p) => p?.id === id);
@@ -80,23 +147,20 @@ export default function LobbyPage() {
       if (ev.type === "JOINED") {
         setLobbyCode(ev.code ?? "");
         setMsg("Joined lobby " + (ev.code ?? ""));
-        setIsHost(false);
         if (Array.isArray(ev.players)) {
-          setPlayers(
-            ev.players.slice(0, 4).map((p: any) =>
-              p ? { id: p.id, name: p.name ?? "Player" } : null
-            )
-          );
-          const readyFromPlayers = ev.players
-            .slice(0, 4)
-            .map((p: any) => !!p?.ready);
-          setReady(readyFromPlayers);
+          applyPlayersSnapshot(ev.players);
+          const hostCandidate = ev.players[0];
+          const hostId =
+            (typeof hostCandidate === "string"
+              ? hostCandidate
+              : hostCandidate?.id ?? hostCandidate?.playerId) ?? null;
+          if (hostId) setIsHost(hostId === playerId);
           return;
         }
-        const joinReady = Array.isArray(ev.ready)
-          ? ev.ready.slice(0, 4).map(Boolean)
-          : [false, false, false, false];
-        setReady(joinReady);
+        setIsHost(false);
+        if (Array.isArray(ev.ready)) {
+          applyReadyArray(ev.ready);
+        }
         const joiningPlayerId = ev.playerId ?? ev.id ?? null;
         const joiningPlayerName = ev.playerName ?? ev.name ?? "Player";
         setPlayers((p) => {
@@ -111,19 +175,29 @@ export default function LobbyPage() {
           return next;
         });
       }
+      if (ev.type === "READYUPDATE") {
+        if (Array.isArray(ev.players)) {
+          applyPlayersSnapshot(ev.players);
+          return;
+        }
+        if (Array.isArray(ev.ready)) applyReadyArray(ev.ready);
+      }
       if (ev.type === "READY" || ev.type === "PLAYER_READY") {
+        if (Array.isArray(ev.players)) {
+          applyPlayersSnapshot(ev.players);
+          return;
+        }
+        if (Array.isArray(ev.ready)) {
+          applyReadyArray(ev.ready);
+        }
         const id = ev.playerId ?? ev.id;
         if (!id) return;
         setReadyForPlayer(id, !!ev.ready, ev.name);
       }
       if (ev.type === "LOBBY_STATE" && Array.isArray(ev.players)) {
-        setPlayers(
-          ev.players.slice(0, 4).map((p: any) =>
-            p ? { id: p.id, name: p.name ?? "Player" } : null
-          )
-        );
+        applyPlayersSnapshot(ev.players);
         if (Array.isArray(ev.ready)) {
-          setReady(ev.ready.slice(0, 4).map(Boolean));
+          applyReadyArray(ev.ready);
         }
       }
       if (ev.type === "START") {
