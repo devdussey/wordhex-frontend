@@ -11,10 +11,10 @@
   color:#9d6bff;
   text-shadow:0 0 10px #9d6bff;
   opacity:1;
-  animation:pulseGlow 1.2s infinite;
+  animation:hudPulseGlow 1.2s infinite;
 }
 
-@keyframes pulseGlow {
+@keyframes hudPulseGlow {
   0%{text-shadow:0 0 4px #9d6bff;}
   50%{text-shadow:0 0 14px #9d6bff;}
   100%{text-shadow:0 0 4px #9d6bff;}

@@ -2,10 +2,10 @@
 .board-pulse{
   position:absolute;inset:0;
   border:2px solid #7f5dff;
-  animation:pulseGlow 1.8s infinite;
+  animation:boardPulseGlow 1.8s infinite;
   pointer-events:none;
 }
-@keyframes pulseGlow{
+@keyframes boardPulseGlow{
   0%{opacity:0.2;}
   50%{opacity:0.6;}
   100%{opacity:0.2;}

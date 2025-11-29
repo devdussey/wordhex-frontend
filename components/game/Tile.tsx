@@ -17,6 +17,7 @@ export default function Tile({ letter, index, selected, onPress }:{
         selected && 'tile-selected'
       )}
     >
+      {selected && <span className="tile-ripple" aria-hidden />}
       <span className="text-2xl font-bold">{letter}</span>
       {selected && (
         <span className="tile-index">{index}</span>

@@ -104,7 +104,15 @@ export default function GameClient(){
     };
   }, []);
 
-  const tileSize=100;
+  const boardSize = 720;
+  const tileGap = 6;
+  const gridSize = board[0]?.length ?? 5;
+  const tileSize = (boardSize - tileGap * (gridSize - 1)) / gridSize;
+  const containerStyle: React.CSSProperties = {
+    position:'relative',
+    width:`${boardSize}px`,
+    margin:'0 auto'
+  };
   const drag=useDragPath(setPath);
 
   function onTilePress(x,y){
@@ -137,16 +145,20 @@ export default function GameClient(){
   }
 
   return (
-    <div style={{position:'relative',width:'720px',margin:'0 auto'}}
+    <div
+      style={containerStyle}
       onMouseUp={onEnd}
       onTouchEnd={onEnd}
     >
+      <div className="bg-anim" aria-hidden />
       <div style={{color:"#8f4dff",textAlign:"center",marginBottom:"10px"}}>
-        Round {round} — Turn: {turn}
+        Round {round} - Turn: {turn}
       </div>
-      <NeonTracer path={path} tileSize={tileSize}/>
-      <NeonTracer path={oppPath} tileSize={tileSize}/>
-      <Board board={board} path={path} onTilePress={onTilePress}/>
+      <div style={{position:'relative'}}>
+        <NeonTracer path={path} tileSize={tileSize} tileGap={tileGap} gridSize={gridSize}/>
+        <NeonTracer path={oppPath} tileSize={tileSize} tileGap={tileGap} gridSize={gridSize}/>
+        <Board board={board} path={path} onTilePress={onTilePress}/>
+      </div>
       <WordPreview word={word} valid={valid} score={score}/>
       <div style={{color:"#fff",textAlign:"center",marginTop:"10px"}}>
         Opponent Score: {oppScore}

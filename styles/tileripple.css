@@ -4,6 +4,7 @@
   border-radius:6px;
   border:2px solid #bb9cff;
   animation:ripple .4s forwards;
+  pointer-events:none;
 }
 @keyframes ripple{
   from{transform:scale(0.8);opacity:1;}

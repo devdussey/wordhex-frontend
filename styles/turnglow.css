@@ -1,10 +1,10 @@
-
-.turn-glow{
+.turn-glow-ring{
   position:absolute;inset:0;
   border-radius:8px;
   border:2px solid #6fff9c;
   box-shadow:0 0 12px #6fff9c;
   animation:turnPulse 1s infinite;
+  pointer-events:none;
 }
 @keyframes turnPulse{
   0%{opacity:0.4;}

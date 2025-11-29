@@ -1,16 +1,3 @@
-
-.score-popup{
-  position:absolute;
-  color:#8f4dff;
-  font-size:1.6rem;
-  text-shadow:0 0 8px #8f4dff;
-  animation:scoreFloat 0.8s ease-out forwards;
-  pointer-events:none;
-}
-@keyframes scoreFloat {
-  0%{opacity:1; transform:translateY(0);}
-  100%{opacity:0; transform:translateY(-40px);}
-}
 .board-invalid{
   animation:boardShake 0.25s;
 }
