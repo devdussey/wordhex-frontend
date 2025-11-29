@@ -5,12 +5,14 @@ import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 
+type AuthResult = { error?: Error } | undefined;
+
 type AuthContextValue = {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithPassword: (email: string, password: string) => Promise<void | { error?: Error }>;
-  signUpWithPassword: (email: string, password: string) => Promise<void | { error?: Error }>;
+  signInWithPassword: (email: string, password: string) => Promise<AuthResult>;
+  signUpWithPassword: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
 
@@ -40,12 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase]);
 
-  const signInWithPassword = async (email: string, password: string) => {
+  const signInWithPassword = async (email: string, password: string): Promise<AuthResult> => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error };
   };
 
-  const signUpWithPassword = async (email: string, password: string) => {
+  const signUpWithPassword = async (email: string, password: string): Promise<AuthResult> => {
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
   };
