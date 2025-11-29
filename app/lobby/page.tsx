@@ -1,225 +1,128 @@
-
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import PlayerRow from "@/components/lobby/PlayerRow";
-import { LobbySocket } from "@/lib/game/lobbySocket";
-import "@/styles/lobby.css";
 import RequireAuth from "@/components/auth/RequireAuth";
+import { useAuth } from "@/components/auth/AuthProvider";
+import "@/styles/lobby.css";
+
+type Player = {
+  userId: Id<"users">;
+  email: string;
+  role: "host" | "member";
+  isReady: boolean;
+  joinedAt: number;
+};
 
 export default function LobbyPage() {
-  const [playerId] = useState(() => "p" + Math.random().toString(36).slice(2));
-  const [players, setPlayers] = useState<(null | { id: string; name: string })[]>([
-    null,
-    null,
-    null,
-    null,
-  ]);
-  const [ready, setReady] = useState([false, false, false, false]);
-  const [isHost, setIsHost] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const [lobbyId, setLobbyId] = useState<Id<"lobbies"> | null>(null);
   const [codeInput, setCodeInput] = useState("");
-  const [lobbyCode, setLobbyCode] = useState("");
-  const [msg, setMsg] = useState("Waiting to create or join a lobby.");
+  const [msg, setMsg] = useState("Create or join a lobby to start playing.");
 
-  const playersRef = useRef(players);
-  const readyRef = useRef(ready);
+  const createLobby = useMutation(api.lobbies.create);
+  const joinLobby = useMutation(api.lobbies.join);
+  const setReadyMutation = useMutation(api.lobbies.setReady);
+  const startGame = useMutation(api.lobbies.start);
+
+  // Subscribe to lobby updates in real-time
+  const lobby = useQuery(
+    api.lobbies.getLobby,
+    lobbyId ? { lobbyId } : "skip"
+  );
+
+  const members: Player[] = lobby?.members || [];
+  const lobbyCode = lobby?.code || "";
+  const isHost = lobby?.hostUserId === user?.userId;
+
+  // Pad to 4 slots
+  const players = [
+    members[0] || null,
+    members[1] || null,
+    members[2] || null,
+    members[3] || null,
+  ];
+
+  const ready = players.map((p) => p?.isReady || false);
+
+  const selfIndex = players.findIndex((p) => p?.userId === user?.userId);
+  const selfReady = selfIndex >= 0 ? ready[selfIndex] : false;
+  const playerCount = members.length;
+  const canStart = isHost && selfReady && playerCount > 1;
+
+  // Check if game has started
   useEffect(() => {
-    playersRef.current = players;
-  }, [players]);
-  useEffect(() => {
-    readyRef.current = ready;
-  }, [ready]);
-
-  function applyReadyArray(arr: any[]) {
-    const incoming = arr.slice(0, 4).map(Boolean);
-    setReady((prev) => {
-      const merged = [...prev];
-      for (let i = 0; i < 4; i++) {
-        if (typeof incoming[i] === "boolean") {
-          merged[i] = incoming[i];
-        } else if (typeof merged[i] !== "boolean") {
-          merged[i] = false;
-        }
-      }
-      return merged.slice(0, 4);
-    });
-  }
-
-  function applyPlayersSnapshot(rawPlayers: any[]) {
-    const byId = new Map(
-      playersRef.current.filter(Boolean).map((p) => [p!.id, p!])
-    );
-    const nextPlayers: (null | { id: string; name: string })[] = Array(4).fill(
-      null
-    );
-    const nextReady = [...readyRef.current, false, false, false, false].slice(
-      0,
-      4
-    );
-
-    rawPlayers.slice(0, 4).forEach((p, idx) => {
-      if (!p) {
-        nextPlayers[idx] = null;
-        nextReady[idx] = false;
-        return;
-      }
-
-      const id =
-        typeof p === "string"
-          ? p
-          : p.id ??
-            p.playerId ??
-            p.name ??
-            byId.get(p.id ?? p.playerId ?? "")?.id ??
-            `player-${idx + 1}`;
-      const existing = (id && byId.get(id)) || playersRef.current[idx] || null;
-      const name =
-        (typeof p === "object" && p.name) ||
-        existing?.name ||
-        `Player ${idx + 1}`;
-
-      nextPlayers[idx] = { id, name };
-
-      if (typeof p === "object" && "ready" in p) {
-        nextReady[idx] = !!(p as any).ready;
-      }
-    });
-
-    const namedPlayers = nextPlayers.map((p) =>
-      p && p.id === playerId ? { ...p, name: "You" } : p
-    );
-
-    setPlayers(namedPlayers);
-    setReady(nextReady);
-  }
-
-  function setReadyForPlayer(id: string, val: boolean, name?: string) {
-    let idx = playersRef.current.findIndex((p) => p?.id === id);
-
-    if (idx === -1) {
-      const nextPlayers = [...playersRef.current];
-      const slot = nextPlayers.findIndex((p) => p === null);
-      if (slot !== -1) {
-        nextPlayers[slot] = { id, name: name ?? "Player" };
-        playersRef.current = nextPlayers;
-        setPlayers(nextPlayers);
-        idx = slot;
-      }
+    if (lobby?.startedAt) {
+      router.push("/game");
     }
+  }, [lobby?.startedAt, router]);
 
-    if (idx !== -1) {
-      setReady((prev) => {
-        const next = [...prev];
-        next[idx] = val;
-        return next;
+  const handleCreateLobby = async () => {
+    if (!user) return;
+    try {
+      const result = await createLobby({ userId: user.userId });
+      setLobbyId(result.lobbyId);
+      setMsg(`Lobby created! Code: ${result.code}`);
+    } catch (error: any) {
+      setMsg(`Error: ${error.message}`);
+    }
+  };
+
+  const handleJoinLobby = async () => {
+    if (!user || !codeInput.trim()) return;
+    try {
+      const result = await joinLobby({ code: codeInput.trim(), userId: user.userId });
+      setLobbyId(result.lobbyId);
+      setMsg(`Joined lobby ${result.code}`);
+    } catch (error: any) {
+      setMsg(`Error: ${error.message}`);
+    }
+  };
+
+  const handleToggleReady = async () => {
+    if (!user || !lobbyId) return;
+    try {
+      await setReadyMutation({
+        lobbyId,
+        userId: user.userId,
+        ready: !selfReady,
       });
+    } catch (error: any) {
+      setMsg(`Error: ${error.message}`);
     }
-  }
+  };
 
-  function toggleSelfReady(nextVal: boolean) {
-    const selfIdx = playersRef.current.findIndex((p) => p?.id === playerId);
-    setReady((prev) => {
-      const next = [...prev];
-      if (selfIdx !== -1) next[selfIdx] = nextVal;
-      else next[0] = nextVal;
-      return next;
-    });
-    LobbySocket.send({ type: "READY", playerId, ready: nextVal, code: lobbyCode });
-  }
-
-  useEffect(() => {
-    // The socket has no unsubscribe API; we register once per mount.
-    LobbySocket.on((ev: any) => {
-      if (ev.type === "CREATED") {
-        setLobbyCode(ev.code ?? "");
-        setMsg("Lobby created. Share the code to invite.");
-        setIsHost(true);
-        const initialReady = Array.isArray(ev.ready)
-          ? ev.ready.slice(0, 4).map(Boolean)
-          : [false, false, false, false];
-        setReady(initialReady);
-        setPlayers(() => [
-          { id: playerId, name: "You" },
-          null,
-          null,
-          null,
-        ]);
-      }
-      if (ev.type === "JOINED") {
-        setLobbyCode(ev.code ?? "");
-        setMsg("Joined lobby " + (ev.code ?? ""));
-        if (Array.isArray(ev.players)) {
-          applyPlayersSnapshot(ev.players);
-          const hostCandidate = ev.players[0];
-          const hostId =
-            (typeof hostCandidate === "string"
-              ? hostCandidate
-              : hostCandidate?.id ?? hostCandidate?.playerId) ?? null;
-          if (hostId) setIsHost(hostId === playerId);
-          return;
-        }
-        setIsHost(false);
-        if (Array.isArray(ev.ready)) {
-          applyReadyArray(ev.ready);
-        }
-        const joiningPlayerId = ev.playerId ?? ev.id ?? null;
-        const joiningPlayerName = ev.playerName ?? ev.name ?? "Player";
-        setPlayers((p) => {
-          const next = [...p];
-          if (!next[0]) next[0] = { id: playerId, name: "You" };
-          // Avoid duplicating yourself if backend echoes your own JOINED
-          if (joiningPlayerId && joiningPlayerId === playerId) return next;
-          const slot = next.findIndex((x) => x === null);
-          if (slot !== -1 && joiningPlayerId) {
-            next[slot] = { id: joiningPlayerId, name: joiningPlayerName };
-          }
-          return next;
-        });
-      }
-      if (ev.type === "READYUPDATE") {
-        if (Array.isArray(ev.players)) {
-          applyPlayersSnapshot(ev.players);
-          return;
-        }
-        if (Array.isArray(ev.ready)) applyReadyArray(ev.ready);
-      }
-      if (ev.type === "READY" || ev.type === "PLAYER_READY") {
-        if (Array.isArray(ev.players)) {
-          applyPlayersSnapshot(ev.players);
-          return;
-        }
-        if (Array.isArray(ev.ready)) {
-          applyReadyArray(ev.ready);
-        }
-        const id = ev.playerId ?? ev.id;
-        if (!id) return;
-        setReadyForPlayer(id, !!ev.ready, ev.name);
-      }
-      if (ev.type === "LOBBY_STATE" && Array.isArray(ev.players)) {
-        applyPlayersSnapshot(ev.players);
-        if (Array.isArray(ev.ready)) {
-          applyReadyArray(ev.ready);
-        }
-      }
-      if (ev.type === "START") {
-        window.location.href = "/game";
-      }
-    });
-  }, [playerId]);
+  const handleStartGame = async () => {
+    if (!user || !lobbyId) return;
+    try {
+      await startGame({ lobbyId, userId: user.userId });
+    } catch (error: any) {
+      setMsg(`Error: ${error.message}`);
+    }
+  };
 
   const slotElems = players.map((p, i) => (
     <PlayerRow
       key={i}
       slot={i + 1}
-      player={p || undefined}
+      player={
+        p
+          ? {
+              id: p.userId,
+              name: p.userId === user?.userId ? "You" : p.email.split("@")[0],
+            }
+          : undefined
+      }
       isHost={isHost && i === 0}
       ready={ready[i]}
     />
   ));
-
-  const playerCount = players.filter(Boolean).length;
-  const selfIndex = players.findIndex((p) => p?.id === playerId);
-  const selfReady = selfIndex >= 0 ? ready[selfIndex] : ready[0];
-  const canStart = isHost && selfReady && playerCount > 1;
 
   return (
     <RequireAuth redirectTo="/login">
@@ -265,7 +168,8 @@ export default function LobbyPage() {
               <div className="panel-actions">
                 <button
                   className={`btn ${selfReady ? "secondary" : "primary"}`}
-                  onClick={() => toggleSelfReady(!selfReady)}
+                  onClick={handleToggleReady}
+                  disabled={!lobbyId}
                 >
                   {selfReady ? "Unready" : "I'm Ready"}
                 </button>
@@ -283,7 +187,8 @@ export default function LobbyPage() {
               <div className="stack">
                 <button
                   className="btn primary wide"
-                  onClick={() => LobbySocket.send({ type: "CREATE", playerId })}
+                  onClick={handleCreateLobby}
+                  disabled={!!lobbyId}
                 >
                   Create Lobby
                 </button>
@@ -293,17 +198,12 @@ export default function LobbyPage() {
                     value={codeInput}
                     onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
                     placeholder="Enter lobby code"
+                    disabled={!!lobbyId}
                   />
                   <button
                     className="btn outline"
-                    onClick={() =>
-                      LobbySocket.send({
-                        type: "JOINLOBBY",
-                        code: codeInput.trim(),
-                        playerId,
-                      })
-                    }
-                    disabled={!codeInput.trim()}
+                    onClick={handleJoinLobby}
+                    disabled={!codeInput.trim() || !!lobbyId}
                   >
                     Join
                   </button>
@@ -311,7 +211,7 @@ export default function LobbyPage() {
 
                 <button
                   className="btn accent wide"
-                  onClick={() => LobbySocket.send({ type: "START" })}
+                  onClick={handleStartGame}
                   disabled={!canStart}
                 >
                   Start Game

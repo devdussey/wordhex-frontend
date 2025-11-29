@@ -71,7 +71,7 @@ function LoginContent() {
     }
 
     if (mode === 'signup') {
-      setMessage('Account created. Check your email for confirmation if required, then sign in.');
+      setMessage('Account created successfully! You can now sign in.');
       setMode('signin');
       return;
     }
@@ -85,7 +85,7 @@ function LoginContent() {
         <div className="auth-head">
           <div className="label">{mode === 'signin' ? 'Welcome' : 'Create account'}</div>
           <h1>{mode === 'signin' ? 'Sign in to play' : 'Sign up to play'}</h1>
-          <p>Authenticate with Supabase to enter the lobby.</p>
+          <p>Authenticate to enter the lobby.</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -129,7 +129,7 @@ function LoginContent() {
         {message && <div className="auth-success">{message}</div>}
 
         <div className="auth-subtext">
-          Password auth is enabled. You can also add OAuth providers later via Supabase settings.
+          Secure authentication powered by Convex.
         </div>
       </div>
     </div>
