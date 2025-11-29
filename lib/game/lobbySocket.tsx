@@ -1,6 +1,8 @@
 
 import { buildAuthenticatedWsUrl } from '@/lib/game/wsAuth';
 
+const IS_BROWSER = typeof window !== 'undefined';
+
 class _LS {
   handlers: ((event: any) => void)[];
   ws: WebSocket | null;
@@ -12,10 +14,13 @@ class _LS {
     this.ws = null;
     this.baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://wordhex-backend.onrender.com';
     this.reconnectDelay = 2000;
-    this.connect();
+    if (IS_BROWSER) {
+      this.connect();
+    }
   }
 
   async connect() {
+    if (!IS_BROWSER) return;
     try {
       const url = await buildAuthenticatedWsUrl(this.baseUrl);
       if (!url) {
