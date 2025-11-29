@@ -7,11 +7,10 @@ import WordPreview from '@/components/game/WordPreview';
 import { useDragPath } from '@/lib/game/useDragPath';
 import { scoreWord } from '@/lib/game/scoring';
 import { validate } from '@/lib/game/dictionary';
-import { OppAI } from '@/lib/game/ai';
-import { MatchFlow } from '@/lib/game/matchflow';
+import { useMultiplayerSocket } from '@/lib/game/useMultiplayerSocket';
 
 export default function GameClient(){
-  const [board] = useState([
+  const [board, setBoard] = useState([
     [{letter:'A'},{letter:'T'},{letter:'E'},{letter:'R'},{letter:'S'}],
     [{letter:'L'},{letter:'I'},{letter:'N'},{letter:'O'},{letter:'P'}],
     [{letter:'Q'},{letter:'E'},{letter:'M'},{letter:'A'},{letter:'R'}],
@@ -27,22 +26,83 @@ export default function GameClient(){
   const [oppScore,setOppScore]=useState(0);
   const [turn,setTurn]=useState("YOU");
   const [round,setRound]=useState(1);
-  const aiRef = React.useRef(null);
+  const [playerId, setPlayerId] = useState('');
+  const [gameStarted, setGameStarted] = useState(false);
+  const wsRef = React.useRef(null);
 
-  useEffect(()=>{
-    aiRef.current = new OppAI(ev=>{
-      if(ev.type==="OPPSUBMIT"){
-        setOppScore(s=>s+ev.score);
-        setTurn("YOU");
+  // Connect to backend WebSocket
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_WS_URL || 'wss://wordhex-backend.onrender.com';
+
+    wsRef.current = useMultiplayerSocket({
+      url,
+      onEvent: (event: any) => {
+        console.log('Game event:', event);
+
+        switch(event.type) {
+          case 'WELCOME':
+            setPlayerId(event.playerId);
+            console.log('Player ID:', event.playerId);
+            break;
+
+          case 'BOARD':
+            // Update board from backend
+            if(event.board) setBoard(event.board);
+            break;
+
+          case 'TURN':
+            // Backend tells us whose turn it is
+            if(event.playerId === playerId) {
+              setTurn('YOU');
+            } else {
+              setTurn('OPP');
+            }
+            break;
+
+          case 'OPPPATH':
+            // Real-time opponent path updates
+            if(event.path) setOppPath(event.path);
+            break;
+
+          case 'OPPSUBMIT':
+            // Opponent submitted a word
+            setOppScore(s => s + (event.score || 0));
+            setTurn('YOU');
+            setOppPath([]);
+            break;
+
+          case 'ROUND':
+            // Update round number
+            if(event.round) setRound(event.round);
+            break;
+
+          case 'MATCHEND':
+            // Game ended
+            console.log('Match ended:', event);
+            break;
+
+          case 'ERROR':
+            // Error from backend
+            console.error('Backend error:', event);
+            break;
+        }
       }
     });
-  },[]);
 
-  useEffect(()=>{
-    if(turn==="OPP"){
-      setTimeout(()=>aiRef.current.takeTurn(),800);
+    // Join the game
+    if(wsRef.current) {
+      const pid = localStorage.getItem('playerId') || `player_${Date.now()}`;
+      setPlayerId(pid);
+      localStorage.setItem('playerId', pid);
+
+      wsRef.current.send({ type: 'JOIN', playerId: pid });
+      setGameStarted(true);
     }
-  },[turn]);
+
+    return () => {
+      // Clean up on unmount if needed
+    };
+  }, []);
 
   const tileSize=100;
   const drag=useDragPath(setPath);
@@ -61,7 +121,14 @@ export default function GameClient(){
 
   function onEnd(){
     drag.end();
-    if(valid){
+    if(valid && gameStarted && wsRef.current){
+      // Send word submission to backend
+      wsRef.current.send({
+        type: 'SUBMIT',
+        word: word,
+        score: score,
+        playerId: playerId
+      });
       setTurn("OPP");
     }
     setPath([]);

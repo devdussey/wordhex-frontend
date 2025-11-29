@@ -1,17 +1,20 @@
 
 export class MockServer {
-  constructor(onEmit){
+  onEmit: (event: any) => void;
+  turn: string | null;
+
+  constructor(onEmit: (event: any) => void){
     this.onEmit = onEmit;
     this.turn = null;
   }
-  start(playerId){
+  start(playerId: string){
     this.onEmit({type:"WELCOME", playerId});
     setTimeout(()=>{
       this.turn = playerId;
       this.onEmit({type:"TURN", playerId});
     }, 500);
   }
-  receive(msg){
+  receive(msg: any){
     if(msg.type==="JOIN"){
       this.start(msg.playerId);
     }

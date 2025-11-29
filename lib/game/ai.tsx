@@ -1,6 +1,9 @@
 
 export class OppAI {
-  constructor(onEmit){
+  onEmit: (event: any) => void;
+  words: string[];
+
+  constructor(onEmit: (event: any) => void){
     this.onEmit = onEmit;
     this.words = ["STAR","LINE","TONE","MAP","AXE"];
   }
